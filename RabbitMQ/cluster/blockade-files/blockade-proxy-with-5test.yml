@@ -1,0 +1,93 @@
+containers:
+  rabbitmq1:
+    image: rabbitmq:3.7-management
+    hostname: rabbitmq1
+    container_name: rabbitmq1
+    environment: { "RABBITMQ_ERLANG_COOKIE": 12345 }
+    volumes: { 
+      "./rabbitmq.config": "/etc/rabbitmq/rabbitmq.config" }
+    expose: [1936,5672,15672]
+
+  amqproxy:
+    image: amqproxy
+    hostname: amqproxy
+    container_name: amqproxy
+    expose: [5673]
+    environment: {
+      "AMQP_URL": "amqp://rabbitmq1:5672"
+    }
+
+  amqproxy-test1:
+    image: amqproxy-test
+    hostname: amqproxy-test1
+    container_name: amqproxy-test1
+    environment: {
+      "NAME-RESOLUTION": "service-name",
+      "NODES": "amqproxy:5673",
+      "QUEUE": "Q1",
+      "MSG-COUNT": "1000000",
+      "PRINT-MOD": "100",
+      "PUB-MODE": "new-conn-per-msg",
+      "USE-CONFIRMS": "false"
+    }
+    start_delay: 2
+
+  amqproxy-test2:
+    image: amqproxy-test
+    hostname: amqproxy-test2
+    container_name: amqproxy-test2
+    environment: {
+      "NAME-RESOLUTION": "service-name",
+      "NODES": "amqproxy:5673",
+      "QUEUE": "Q1",
+      "MSG-COUNT": "1000000",
+      "PRINT-MOD": "100",
+      "PUB-MODE": "new-conn-per-msg",
+      "USE-CONFIRMS": "false"
+    }
+  
+  amqproxy-test3:
+    image: amqproxy-test
+    hostname: amqproxy-test3
+    container_name: amqproxy-test3
+    environment: {
+      "NAME-RESOLUTION": "service-name",
+      "NODES": "amqproxy:5673",
+      "QUEUE": "Q1",
+      "MSG-COUNT": "1000000",
+      "PRINT-MOD": "100",
+      "PUB-MODE": "new-conn-per-msg",
+      "USE-CONFIRMS": "false"
+    }
+
+  amqproxy-test4:
+    image: amqproxy-test
+    hostname: amqproxy-test4
+    container_name: amqproxy-test4
+    environment: {
+      "NAME-RESOLUTION": "service-name",
+      "NODES": "amqproxy:5673",
+      "QUEUE": "Q1",
+      "MSG-COUNT": "1000000",
+      "PRINT-MOD": "100",
+      "PUB-MODE": "new-conn-per-msg",
+      "USE-CONFIRMS": "false"
+    }
+
+  amqproxy-test5:
+    image: amqproxy-test
+    hostname: amqproxy-test5
+    container_name: amqproxy-test5
+    environment: {
+      "NAME-RESOLUTION": "service-name",
+      "NODES": "amqproxy:5673",
+      "QUEUE": "Q1",
+      "MSG-COUNT": "1000000",
+      "PRINT-MOD": "100",
+      "PUB-MODE": "new-conn-per-msg",
+      "USE-CONFIRMS": "false"
+    }
+
+network:
+  driver: udn
+  slow: 50ms

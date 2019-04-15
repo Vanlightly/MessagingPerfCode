@@ -1,0 +1,22 @@
+containers:
+  rabbitmq1:
+    image: rabbitmq:3.7-management
+    hostname: rabbitmq1
+    container_name: rabbitmq1
+    environment: { "RABBITMQ_ERLANG_COOKIE": 12345 }
+    volumes: { 
+      "./rabbitmq.config": "/etc/rabbitmq/rabbitmq.config" }
+    expose: [1936,5672,15672]
+
+  amqproxy:
+    image: amqproxy
+    hostname: amqproxy
+    container_name: amqproxy
+    expose: [5673]
+    environment: {
+      "AMQP_URL": "amqp://rabbitmq1:5672"
+    }
+
+network:
+  driver: udn
+  slow: 50ms

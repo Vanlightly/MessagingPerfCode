@@ -8,7 +8,7 @@ containers:
       "./rabbitmq.config": "/etc/rabbitmq/rabbitmq.config" }
     expose: [1936,5672,15672]
 
-  amqproxy-test1:
+    amqproxy-test1:
     image: amqproxy-test
     hostname: amqproxy-test1
     container_name: amqproxy-test1

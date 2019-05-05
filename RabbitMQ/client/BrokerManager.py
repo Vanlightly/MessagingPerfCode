@@ -120,7 +120,7 @@ class BrokerManager:
             queue_node = "rabbit@" + mgmt_node
 
             if sac_enabled:
-                r = requests.put('htself.init_live_nodestp://' + mgmt_node_ip + ':15672/api/queues/%2F/' + queue_name, 
+                r = requests.put('http://' + mgmt_node_ip + ':15672/api/queues/%2F/' + queue_name, 
                         data = "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-single-active-consumer\": true},\"node\":\"" + queue_node + "\"}",
                         auth=('guest','guest'))
             else:
@@ -168,7 +168,7 @@ class BrokerManager:
             return r.status_code == 201 or r.status_code == 204
         except Exception as e:
             console_out("Could not create queue. Will retry. " + str(e), "TEST RUNNER")
-            return Falseself.init_live_nodes
+            return False
 
     def get_init_node(self, index):
         next_index =  index % len(self.init_live_nodes)

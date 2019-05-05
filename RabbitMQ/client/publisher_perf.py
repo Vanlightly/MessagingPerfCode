@@ -32,6 +32,7 @@ if __name__ == "__main__":
     print_mod = int(get_optional_arg(args, "--print-mod", "1000"))
     in_flight_max = int(get_optional_arg(args, "--in-flight-max", "10"))
     publish_mode = get_mandatory_arg(args, "--pub-mode")
+    publisher_count = int(get_mandatory_arg(args, "--pub-count"))
     use_confirms = is_true(get_mandatory_arg(args, "--use-confirms"))
 
     broker_manager = BrokerManager()
@@ -65,15 +66,22 @@ if __name__ == "__main__":
 
     time.sleep(2)
 
-    if publish_mode == "async":
-        publisher = AsyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
-    elif publish_mode == "sync":
-        publisher = SyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
-    elif publish_mode == "new-conn-per-msg":
-        publisher = OneMsgSyncPublisher(broker_manager, f"PUBLISHER", connect_mode, use_confirms, print_mod)
+    publishers = list()
+    pub_threads = list()
+
+    for i iun range(publisher_count):
+        if publish_mode == "async":
+            publisher = AsyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
+        elif publish_mode == "sync":
+            publisher = SyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
+        elif publish_mode == "new-conn-per-msg":
+            publisher = OneMsgSyncPublisher(broker_manager, f"PUBLISHER", connect_mode, use_confirms, print_mod)
+
+        publishers.append(publisher)
 
     console_out(f"Starting publishing", "TEST RUNNER")
     time_start = datetime.datetime.now()
+
 
     pub_thread = threading.Thread(target=publisher.publish_direct, args=(queue_name, msg_count, 1, 0, "sequence"))
     pub_thread.start()

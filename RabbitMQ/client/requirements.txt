@@ -1,2 +1,2 @@
-pika==1.0.0
+pika==1.0.1
 requests==2.21.0

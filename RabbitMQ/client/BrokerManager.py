@@ -11,9 +11,11 @@ class BrokerManager:
     def __init__(self):
         self.init_live_nodes = list()
         self.ports = dict()
+        self.ips = dict()
         self.name_resolution = ""
         self.curr_node = 0
         self.fixed_port = ""
+        
 
     def set_nodes_and_ports(self, nodes):
         for node_and_port in nodes:
@@ -25,14 +27,23 @@ class BrokerManager:
             self.init_live_nodes.append(node)
             self.ports[node] = port
 
+    def set_ips_nodes_and_ports(self, nodes):
+        for node_and_port in nodes:
+            parts = node_and_port.split(":")
+            vm_ip = parts[0]
+            node = parts[1]
+            port = parts[2]
+            self.init_live_nodes.append(node)
+            self.ports[node] = port
+            self.ips[node] = vm_ip
+
     def set_as_service_mode(self, nodes):
         self.name_resolution = "service-name"
         self.set_nodes_and_ports(nodes)
 
-    def set_as_localhost_mode(self, nodes):
-        self.name_resolution = "localhost"
-        self.init_live_nodes = nodes
-        self.set_nodes_and_ports(nodes)
+    def set_as_ip_mode(self, nodes):
+        self.name_resolution = "ip"
+        self.set_ips_nodes_and_ports(nodes)
 
     def set_as_blockade_udn_mode(self, port):
         self.name_resolution = "blockade-udn"
@@ -72,8 +83,8 @@ class BrokerManager:
     def get_node_ip(self, node_name):
         if self.name_resolution == "service-name":
             return node_name
-        elif self.name_resolution == "localhost":
-            return "127.0.0.1"
+        elif self.name_resolution == "ip":
+            return self.ips[node_name]
         elif self.name_resolution == "blockade-udn":
             bash_command = "bash ../cluster/get-node-ip.sh " + node_name
             process = subprocess.Popen(bash_command.split(), stdout=subprocess.PIPE)
@@ -92,7 +103,7 @@ class BrokerManager:
     def get_live_nodes(self):
         if self.name_resolution == "service-name":
             return self.init_live_nodes
-        elif self.name_resolution == "localhost":
+        elif self.name_resolution == "ip":
             return self.init_live_nodes
         elif self.name_resolution == "blockade-udn":
             bash_command = "bash ../cluster/list-live-nodes.sh"

@@ -1,0 +1,14 @@
+version: '3'
+
+services:
+
+  rmq-publisher:
+    image: jackvanlightly/rabbitmq-publisher:0.2
+    environment:
+      - NAME-RESOLUTION=ip
+      - NODES=192.168.233.136:rabbitmq1:5672
+      - MSG-COUNT=100000000
+      - PRINT-MOD=1000
+      - PUB-MODE=async
+      - USE-CONFIRMS=true
+      - IN-FLIGHT-MAX=10000

@@ -61,6 +61,9 @@ class SyncPublisher(object):
     def get_pos_ack_count(self):
         return self.pos_acks
 
+    def get_total_ack_count(self):
+        return self.pos_acks + self.neg_acks
+
     def set_actor(self):
         self.actor = f"{self.publisher_id}->{self.connected_node}"
 
@@ -85,9 +88,6 @@ class SyncPublisher(object):
 
     def repeat_to_length(self, string_to_expand, length):
         return (string_to_expand * (int(length/len(string_to_expand))+1))[:length]
-
-    def stop_publishing(self):
-        self._stopping = True
 
     def start_publishing(self):
         

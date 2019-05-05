@@ -7,7 +7,7 @@ import datetime
 import uuid
 import random
 
-from printer import console_out
+from printer import console_out, console_out_exception
 from BrokerManager import BrokerManager
 
 class AsyncPublisher(object):
@@ -75,6 +75,9 @@ class AsyncPublisher(object):
 
     def get_pos_ack_count(self):
         return self.pos_acks
+
+    def get_total_ack_count(self):
+        return self.pos_acks + self.neg_acks
 
     def set_actor(self):
         self.actor = f"{self.publisher_id}->{self.connected_node}"
@@ -162,8 +165,15 @@ class AsyncPublisher(object):
 
     def close_connection(self):
         self.connected_node = "none"
-        if self._connection is not None:
-            self._connection.close()
+        if self._connection is not None and self._connection.is_open:
+            try:
+                console_out("Closing connection...", self.get_actor())
+                self._connection.close()
+                console_out("Connection closed", self.get_actor())
+            except pika.execeptions.ConnectionWrongStateError:
+                console_out("Cannot close connection, already closed", self.get_actor())
+            except Exception as e:
+                console_out_exception("Failed closing connection", e, self.get_actor())
 
     def repeat_to_length(self, string_to_expand, length):
         return (string_to_expand * (int(length/len(string_to_expand))+1))[:length]
@@ -308,7 +318,6 @@ class AsyncPublisher(object):
 
         if (self.pos_acks + self.neg_acks) >= self.expected:
             console_out(f"Final Count => Pos acks: {self.pos_acks} Neg acks: {self.neg_acks} Undeliverable: {self.undeliverable} No Acks: {self.no_acks}", self.get_actor())
-            self._stopping = True
             self.stop(True)
             
 
@@ -353,6 +362,8 @@ class AsyncPublisher(object):
 
             self._connection = self.connect()
             self._connection.ioloop.start()
+
+        console_out("Publisher terminated", self.get_actor())
 
     def print_final_count(self):
         console_out(f"Final Count => Sent: {self.curr_pos} Pos acks: {self.pos_acks} Neg acks: {self.neg_acks} Undeliverable: {self.undeliverable} No Acks: {self.no_acks}", self.get_actor())

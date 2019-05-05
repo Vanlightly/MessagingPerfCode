@@ -58,6 +58,9 @@ class OneMsgSyncPublisher(object):
     def get_pos_ack_count(self):
         return self.pos_acks
 
+    def get_total_ack_count(self):
+        return self.pos_acks + self.neg_acks
+
     def set_actor(self):
         self.actor = f"{self.publisher_id}->{self.connected_node}"
 

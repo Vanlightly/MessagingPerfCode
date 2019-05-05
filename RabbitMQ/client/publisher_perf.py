@@ -11,6 +11,7 @@ import time
 import datetime
 import sys
 import threading
+import random
 
 import signal
 
@@ -22,30 +23,31 @@ def sigterm_handler(_signo, _stack_frame):
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sigterm_handler)
 
-    console_out("Starting with delay (for blockade slow to be executed)", "TEST RUNNER")
-    time.sleep(10)
     args = get_args(sys.argv)
 
     name_resolution = get_mandatory_arg(args, "--name-resolution")
-    queue = get_mandatory_arg(args, "--queue")
+    queue = get_optional_arg(args, "--queue", f"q{random.randint(0, 100000)}")
     msg_count = int(get_mandatory_arg(args, "--msg-count"))
     print_mod = int(get_optional_arg(args, "--print-mod", "1000"))
     in_flight_max = int(get_optional_arg(args, "--in-flight-max", "10"))
     publish_mode = get_mandatory_arg(args, "--pub-mode")
-    publisher_count = int(get_mandatory_arg(args, "--pub-count"))
     use_confirms = is_true(get_mandatory_arg(args, "--use-confirms"))
+    delay_seconds = int(get_optional_arg(args, "--pub-delay", "0"))
+
+    if delay_seconds > 0:
+        console_out(f"Starting with delay of {delay_seconds} seconds", "TEST RUNNER")
+        time.sleep(delay_seconds)
 
     broker_manager = BrokerManager()
-    connect_mode = "rabbitmq1"
-
+    
     if name_resolution == "service-name":
         nodes_list = as_list(get_mandatory_arg(args, "--nodes"))
         connect_mode = nodes_list[0][:nodes_list[0].find(":")]
         broker_manager.set_as_service_mode(nodes_list)
-    elif name_resolution == "localhost":
+    elif name_resolution == "ip":
         nodes_list = as_list(get_mandatory_arg(args, "--nodes"))
-        connect_mode = nodes_list[0][:nodes_list[0].find(":")]
-        broker_manager.set_as_localhost_mode(nodes_list)
+        connect_mode = nodes_list[0].split(":")[1]
+        broker_manager.set_as_ip_mode(nodes_list)
     elif name_resolution == "blockade-udn":
         node_port  = get_mandatory_arg(args, "--port")
         broker_manager.set_as_blockade_udn_mode(node_port)
@@ -55,7 +57,7 @@ if __name__ == "__main__":
     console_out(f"Initial nodes: {initial_nodes}", "TEST RUNNER")
 
     queue_name = queue
-    mgmt_node = "rabbitmq1"
+    mgmt_node = broker_manager.get_random_init_node()
     queue_created = False
 
     while queue_created == False:  
@@ -65,19 +67,13 @@ if __name__ == "__main__":
             time.sleep(5)
 
     time.sleep(2)
-
-    publishers = list()
-    pub_threads = list()
-
-    for i iun range(publisher_count):
-        if publish_mode == "async":
-            publisher = AsyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
-        elif publish_mode == "sync":
-            publisher = SyncPublisher(broker_manager, f"PUBLISHER", connect_mode, in_flight_max, 120, print_mod)
-        elif publish_mode == "new-conn-per-msg":
-            publisher = OneMsgSyncPublisher(broker_manager, f"PUBLISHER", connect_mode, use_confirms, print_mod)
-
-        publishers.append(publisher)
+    
+    if publish_mode == "async":
+        publisher = AsyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), in_flight_max, 120, print_mod)
+    elif publish_mode == "sync":
+        publisher = SyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), in_flight_max, 120, print_mod)
+    elif publish_mode == "new-conn-per-msg":
+        publisher = OneMsgSyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), use_confirms, print_mod)
 
     console_out(f"Starting publishing", "TEST RUNNER")
     time_start = datetime.datetime.now()
@@ -88,15 +84,18 @@ if __name__ == "__main__":
 
     try:
         while pub_thread.is_alive():
-            time.sleep(10)
-
+            time.sleep(1)
+            if publisher.get_total_ack_count() == msg_count:
+                break
+    except KeyboardInterrupt:
+        console_out(f"User requested stop", "TEST RUNNER")
     finally:
-        console_out(f"Stopping...", "TEST RUNNER")
         publisher.stop_publishing()
+        console_out(f"Stopping...", "TEST RUNNER")
         time_end = datetime.datetime.now()
         pub_thread.join()
         
         console_out(f"Publishing complete", "TEST RUNNER")
 
-        avg_pub_rate = len(publisher.get_msg_set()) / (time_end-time_start).total_seconds()
+        avg_pub_rate = publisher.get_total_ack_count() / (time_end-time_start).total_seconds()
         console_out(f"AVG MESSAGES PER SECOND {avg_pub_rate}", "TEST RUNNER")

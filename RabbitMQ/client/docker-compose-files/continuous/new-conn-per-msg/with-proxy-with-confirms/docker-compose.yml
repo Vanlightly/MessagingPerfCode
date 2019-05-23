@@ -6,6 +6,11 @@ services:
     image: jackvanlightly/rabbitmq-publisher:latest
     environment:
       - MGMT-IP=192.168.233.132
+      - MGMT-PORT=15672
+      - USER=test
+      - PASSWORD=test
+      - USE-HTTPS=false
+      - VHOST=%2f
       - USE-AMQPROXY=true
       - USE-TOXIPROXY=true
       - BROKER-NAME=rabbitmq1

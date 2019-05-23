@@ -8,15 +8,21 @@ import json
 from printer import console_out, console_out_exception
 
 class BrokerManager:
-    def __init__(self, mgmt_ip, broker_name, broker_ip, broker_port, amqproxy_ip, amqproxy_port):
+    def __init__(self, mgmt_ip, mgmt_port, broker_name, broker_ip, broker_port, amqproxy_ip, amqproxy_port, user, password, use_https, virtual_host):
         self.mgmt_ip = mgmt_ip
+        self.mgmt_port = mgmt_port
         self.broker_name = broker_name
         self.broker_ip = broker_ip
         self.broker_port = broker_port
         self.amqproxy_ip = amqproxy_ip
         self.amqproxy_port = amqproxy_port
-        self.user = "test"
-        self.password = "test"
+        self.user = user
+        self.password = password
+        if use_https:
+            self.http = "https"
+        else:
+            self.http = "http"
+        self.virtual_host = virtual_host
             
     def get_broker_name(self):
         return self.broker_name
@@ -36,14 +42,18 @@ class BrokerManager:
     def create_queue(self, queue_name, sac_enabled):
         try:
             queue_node = "rabbit@" + self.broker_name
-
+            
             if sac_enabled:
-                r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
+                path = self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name
+                console_out(path, "TEST RUNNER")
+                r = requests.put(path, 
                         data = "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-single-active-consumer\": true},\"node\":\"" + queue_node + "\"}",
                         auth=(self.user,self.password))
             else:
-                r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
-                        data = "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-queue-mode\":\"lazy\"},\"node\":\"" + queue_node + "\"}",
+                path = self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name
+                console_out(path, "TEST RUNNER")
+                r = requests.put(path, 
+                        data = "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-queue-mode\":\"lazy\"}}",
                         auth=(self.user,self.password))
 
             console_out(f"Created {queue_name} with response code {r}", "TEST_RUNNER")
@@ -56,27 +66,27 @@ class BrokerManager:
     def create_replicated_queue(self, queue_name, replication_factor, queue_type, sac_enabled):
         try:
             queue_node = "rabbit@" + self.broker_name
-
+            
             if queue_type == "quorum":
                 if sac_enabled:
-                    r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
+                    r = requests.put(self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name, 
                             data = "{\"durable\":true,\"arguments\":{\"x-queue-type\":\"quorum\", \"x-quorum-initial-group-size\":" + replication_factor + ",\"x-single-active-consumer\": false},\"node\":\"" + queue_node + "\"}",
                             auth=(self.user,self.password))
                 else:
-                    r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
+                    r = requests.put(self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name, 
                             data = "{\"durable\":true,\"arguments\":{\"x-queue-type\":\"quorum\", \"x-quorum-initial-group-size\":" + replication_factor + "},\"node\":\"" + queue_node + "\"}",
                             auth=(self.user,self.password))
             else:
                 if sac_enabled:
-                    r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
+                    r = requests.put(self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name, 
                             data = "{\"auto_delete\":false,\"durable\":true,\"arguments\":{\"x-single-active-consumer\": false},\"node\":\"" + queue_node + "\"}",
                             auth=(self.user,self.password))
                 else:
-                    r = requests.put('http://' + self.mgmt_ip + ':15672/api/queues/%2F/' + queue_name, 
+                    r = requests.put(self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/queues/' + self.virtual_host + '/' + queue_name, 
                             data = "{\"auto_delete\":false,\"durable\":true,\"node\":\"" + queue_node + "\"}",
                             auth=(self.user,self.password))
 
-                r = requests.put('http://' + self.mgmt_ip + ':15672/api/policies/%2F/ha-queues', 
+                r = requests.put(self.http + '://' + self.mgmt_ip + ':' + self.mgmt_port + '/api/policies/' + self.virtual_host + '/ha-queues', 
                         data = "{\"pattern\":\"" + queue_name + "\", \"definition\": {\"ha-mode\":\"exactly\", \"ha-params\": " + replication_factor + ",\"ha-sync-mode\":\"automatic\" }, \"priority\":0, \"apply-to\": \"queues\"}",
                         auth=(self.user,self.password))
 
@@ -94,7 +104,7 @@ class BrokerManager:
             return self.get_url_for(self.get_broker_ip(), self.get_broker_port())
 
     def get_url_for(self, ip, port):
-        url = f"amqp://{self.user}:{self.password}@{ip}:{port}/%2F"
+        url = f"amqp://{self.user}:{self.password}@{ip}:{port}/{self.virtual_host}"
 
         return url
 

@@ -24,6 +24,10 @@ if __name__ == "__main__":
 
     args = get_args(sys.argv)
 
+    user = get_optional_arg(args, "--user", "test")
+    password = get_optional_arg(args, "--password", "test")
+    use_https = is_true(get_optional_arg(args, "--use-https", "false"))
+    virtual_host = get_optional_arg(args, "--vhost", "%2f")
     queue = get_optional_arg(args, "--queue", f"q{random.randint(0, 100000)}")
     msg_count = int(get_mandatory_arg(args, "--msg-count"))
     print_mod = int(get_optional_arg(args, "--print-mod", "1000"))
@@ -31,6 +35,7 @@ if __name__ == "__main__":
     use_amqproxy = is_true(get_mandatory_arg(args, "--use-amqproxy"))
     use_toxiproxy = is_true(get_mandatory_arg(args, "--use-toxiproxy"))
     mgmt_ip = get_mandatory_arg(args, "--mgmt-ip")
+    mgmt_port = get_mandatory_arg(args, "--mgmt-port")
     broker_name = get_mandatory_arg(args, "--broker-name")
     
     if use_amqproxy:
@@ -51,7 +56,7 @@ if __name__ == "__main__":
         console_out(f"Starting with delay of {delay_seconds} seconds", "TEST RUNNER")
         time.sleep(delay_seconds)
 
-    broker_manager = BrokerManager(mgmt_ip, broker_name, broker_ip, broker_port, amqproxy_ip, amqproxy_port)
+    broker_manager = BrokerManager(mgmt_ip, mgmt_port, broker_name, broker_ip, broker_port, amqproxy_ip, amqproxy_port, user, password, use_https, virtual_host)
 
     queue_created = False
 

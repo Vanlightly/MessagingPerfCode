@@ -23,6 +23,28 @@ def get_mandatory_arg(args_dict, key):
 
         return env_var
 
+def get_mandatory_arg_validated(args_dict, key, allowed_values):
+    if key in args_dict:
+        val = args_dict[key]
+        if val in allowed_values:
+            print(f"SUPPLIED {key}={val}")
+            return val
+        else:
+            print(f"SUPPLIED ILLEGAL VALUE {key}={val}. ALLOWED {allowed_values}")
+            exit(1)
+    else:
+        env_var = os.environ.get(key.replace("--", "").upper())
+        if env_var is None:
+            print(f"Missing mandatory argument {key}")
+            exit(1)
+
+        if env_var in allowed_values:
+            print(f"SUPPLIED {key}={env_var}")
+            return env_var
+        else:
+            print(f"SUPPLIED ILLEGAL VALUE {key}={env_var}. ALLOWED {allowed_values}")
+            exit(1)
+
 def get_optional_arg(args_dict, key, default_value):
     if key in args_dict:
         return args_dict[key]

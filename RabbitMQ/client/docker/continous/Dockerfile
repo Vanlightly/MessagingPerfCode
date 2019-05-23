@@ -1,4 +1,4 @@
-FROM python:3.6.8-slim-jessie
+FROM python:3.6.8-alpine
 
 COPY requirements.txt /
 

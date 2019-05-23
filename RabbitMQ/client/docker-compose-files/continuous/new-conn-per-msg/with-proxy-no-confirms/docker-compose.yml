@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+
+  rmq-publisher:
+    image: jackvanlightly/rabbitmq-publisher:latest
+    environment:
+      - MGMT-IP=192.168.233.132
+      - USE-AMQPROXY=true
+      - USE-TOXIPROXY=true
+      - BROKER-NAME=rabbitmq1
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5673
+      - PUB-MODE=new-conn-per-msg
+      - USE-CONFIRMS=false
+      - MSG-COUNT=100000000
+      - PRINT-MOD=100
+
+  toxiproxy:
+    image: shopify/toxiproxy
+    hostname: toxiproxy
+    container_name: toxiproxy
+    ports:
+      - 5672:5672
+      - 15672:15672
+      - 8474:8474
+
+  amqproxy:
+    image: jackvanlightly/amqproxy
+    ports:
+      - 5673:5673
+    environment:
+      - LISTEN_PORT=5673
+      - AMQP_URL=amqp://toxiproxy:5672

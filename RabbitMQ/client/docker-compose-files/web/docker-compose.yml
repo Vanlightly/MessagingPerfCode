@@ -1,0 +1,157 @@
+version: '3'
+
+services:
+
+  haproxy:
+    image: haproxy:1.7
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    ports:
+      - 5000:5000
+
+  rmq-publisher1:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5001:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher2:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5002:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher3:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5003:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=192.168.233.132
+      - BROKER-PORT=5673
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher4:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5004:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher5:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5005:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+  
+  rmq-publisher6:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5006:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher7:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5007:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher8:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5008:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher9:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5009:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  rmq-publisher10:
+    image: jackvanlightly/web-rmq-publisher:0.2
+    ports:
+      - 5010:5000
+    environment:
+      - MGMT-IP=192.168.233.132
+      - BROKER-NAME=rabbitmq1
+      - BROKER-IP=toxiproxy
+      - BROKER-PORT=5672
+      - AMQPROXY-IP=amqproxy
+      - AMQPROXY-PORT=5674
+      - USE-CONFIRMS=false
+
+  toxiproxy:
+    image: shopify/toxiproxy
+    hostname: toxiproxy
+    container_name: toxiproxy
+    ports:
+      - 5672:5672
+      - 15672:15672
+      - 8474:8474
+
+  amqproxy:
+    image: jackvanlightly/amqproxy
+    ports:
+      - 5674:5674
+    environment:
+      - LISTEN_PORT=5674
+      - AMQP_URL=amqp://toxiproxy:5672

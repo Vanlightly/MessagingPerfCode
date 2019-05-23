@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
 from AsyncPublisher import AsyncPublisher
-from SyncPublisher import SyncPublisher
-from OneMsgSyncPublisher import OneMsgSyncPublisher
-from command_args import get_args, get_mandatory_arg, get_optional_arg, is_true, as_list
+from SimplePublisher import SimplePublisher
+from command_args import get_args, get_mandatory_arg, get_optional_arg, is_true, as_list, get_mandatory_arg_validated
 from BrokerManager import BrokerManager
 from printer import console_out
 
@@ -25,61 +24,67 @@ if __name__ == "__main__":
 
     args = get_args(sys.argv)
 
-    name_resolution = get_mandatory_arg(args, "--name-resolution")
     queue = get_optional_arg(args, "--queue", f"q{random.randint(0, 100000)}")
     msg_count = int(get_mandatory_arg(args, "--msg-count"))
     print_mod = int(get_optional_arg(args, "--print-mod", "1000"))
-    in_flight_max = int(get_optional_arg(args, "--in-flight-max", "10"))
-    publish_mode = get_mandatory_arg(args, "--pub-mode")
     use_confirms = is_true(get_mandatory_arg(args, "--use-confirms"))
+    use_amqproxy = is_true(get_mandatory_arg(args, "--use-amqproxy"))
+    use_toxiproxy = is_true(get_mandatory_arg(args, "--use-toxiproxy"))
+    mgmt_ip = get_mandatory_arg(args, "--mgmt-ip")
+    broker_name = get_mandatory_arg(args, "--broker-name")
+    
+    if use_amqproxy:
+        amqproxy_ip = get_mandatory_arg(args, "--amqproxy-ip")
+        amqproxy_port = get_mandatory_arg(args, "--amqproxy-port")
+        broker_ip = ""
+        broker_port = ""
+    else:
+        broker_ip = get_mandatory_arg(args, "--broker-ip")
+        broker_port = get_mandatory_arg(args, "--broker-port")
+        amqproxy_ip = ""
+        amqproxy_port = ""
+
+    publish_mode = get_mandatory_arg_validated(args, "--pub-mode", ["async", "sync", "new-conn-per-msg", "fire-and-forget"])
     delay_seconds = int(get_optional_arg(args, "--pub-delay", "0"))
 
     if delay_seconds > 0:
         console_out(f"Starting with delay of {delay_seconds} seconds", "TEST RUNNER")
         time.sleep(delay_seconds)
 
-    broker_manager = BrokerManager()
-    
-    if name_resolution == "service-name":
-        nodes_list = as_list(get_mandatory_arg(args, "--nodes"))
-        connect_mode = nodes_list[0][:nodes_list[0].find(":")]
-        broker_manager.set_as_service_mode(nodes_list)
-    elif name_resolution == "ip":
-        nodes_list = as_list(get_mandatory_arg(args, "--nodes"))
-        connect_mode = nodes_list[0].split(":")[1]
-        broker_manager.set_as_ip_mode(nodes_list)
-    elif name_resolution == "blockade-udn":
-        node_port  = get_mandatory_arg(args, "--port")
-        broker_manager.set_as_blockade_udn_mode(node_port)
+    broker_manager = BrokerManager(mgmt_ip, broker_name, broker_ip, broker_port, amqproxy_ip, amqproxy_port)
 
-    broker_manager.load_initial_nodes()
-    initial_nodes = broker_manager.get_initial_nodes()
-    console_out(f"Initial nodes: {initial_nodes}", "TEST RUNNER")
-
-    queue_name = queue
-    mgmt_node = broker_manager.get_random_init_node()
     queue_created = False
 
     while queue_created == False:  
-        queue_created = broker_manager.create_queue(mgmt_node, queue_name, False)
+        queue_created = broker_manager.create_queue(queue, False)
 
         if queue_created == False:
             time.sleep(5)
 
     time.sleep(2)
+
+    if use_toxiproxy:
+        proxy_created = False
+        while proxy_created == False: 
+            proxy_created = broker_manager.add_proxy("clients")
+            if not proxy_created:
+                time.sleep(5)
+    
+    time.sleep(2)
     
     if publish_mode == "async":
-        publisher = AsyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), in_flight_max, 120, print_mod)
+        in_flight_max = int(get_mandatory_arg(args, "--in-flight-max"))
+        publisher = AsyncPublisher(broker_manager, f"PUBLISHER", use_amqproxy, use_confirms, in_flight_max, print_mod)
     elif publish_mode == "sync":
-        publisher = SyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), in_flight_max, 120, print_mod)
+        publisher = SimplePublisher(broker_manager, f"PUBLISHER", use_amqproxy, use_confirms, False, print_mod)
     elif publish_mode == "new-conn-per-msg":
-        publisher = OneMsgSyncPublisher(broker_manager, f"PUBLISHER", broker_manager.get_random_init_node(), use_confirms, print_mod)
+        publisher = SimplePublisher(broker_manager, f"PUBLISHER", use_amqproxy, use_confirms, True, print_mod)
 
     console_out(f"Starting publishing", "TEST RUNNER")
     time_start = datetime.datetime.now()
 
 
-    pub_thread = threading.Thread(target=publisher.publish_direct, args=(queue_name, msg_count, 1, 0, "sequence"))
+    pub_thread = threading.Thread(target=publisher.publish_sequence_direct, args=(queue, msg_count))
     pub_thread.start()
 
     try:
